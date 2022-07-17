@@ -10,4 +10,11 @@ const adminInsertSchema = Joi.object({
     level : level.required()
 });
 
-module.exports = { adminInsertSchema }
+const adminUpdateSchema = Joi.object({
+    name: name.required(),
+    newName: name.required(),
+    newPassword: password.required(),
+    newLevel : level.required()
+});
+
+module.exports = { adminInsertSchema, adminUpdateSchema }

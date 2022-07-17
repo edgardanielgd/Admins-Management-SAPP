@@ -1,6 +1,8 @@
 const boom = require("@hapi/boom");
 const dbClient = require("./../db");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const { JWTKEY } = require("./../config");
 
 class ServersService {
     constructor() {}
@@ -33,8 +35,27 @@ class ServersService {
         if( !validation ){
             throw boom.unauthorized( "Invalid server name / password data");
         }
+
+        const data = {
+            serverId : server._id,
+            date : new Date()
+        };
+
+        const token = jwt.sign( data, JWTKEY , {
+            expiresIn: "365d"
+        });
         
-        return server;
+        return token;
+    }
+
+    async chekAuth ( token ){
+        const validation = jwt.decode( token, JWTKEY );
+
+        if( validation ){
+             return validation;
+        }
+
+        throw boom.unauthorized( "Incorrect server's token");
     }
 
     async create( svName, svPassword ){
@@ -52,12 +73,22 @@ class ServersService {
 
         const serversCollection = db.collection( "Servers" );
 
-        const result = await  serversCollection.insertOne( {
+        const result = await serversCollection.insertOne( {
             svName : svName,
             svPassword : password
         } );
 
-        return result;
+        const data = {
+            serverId : result.insertedId,
+            date : new Date()
+        };
+
+        const token = jwt.sign( data, JWTKEY , {
+            expiresIn: "365d"
+        });
+        
+        return token;
+        
     }
 }
 

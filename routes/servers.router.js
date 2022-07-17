@@ -9,15 +9,15 @@ const serversRouter = new Router();
 const router = new Router();
 
 router.use(
-    "/query/:serverName/:serverPassword",
+    "/query/:token",
     async ( req, res, next ) => {
         try{
-            const { serverName, serverPassword } = req.params;
+            const { token } = req.params;
 
-            if( !serverName || !serverPassword )
+            if( !token )
                 throw boom.badRequest( "Invalid data" );
 
-            const server = await service.login( serverName, serverPassword );
+            const server = await service.chekAuth( token );
             req.server = server;
             next();
         }catch( e ){

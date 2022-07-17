@@ -1,6 +1,8 @@
 const boom = require("@hapi/boom");
 const dbClient = require("./../db");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+const { JWTKEY } = require("./../config");
 
 class AdminsService {
     constructor () {}
@@ -14,7 +16,7 @@ class AdminsService {
             throw boom.unauthorized( "Invalid admin / password data ");
         }
         // Admins are identified by name
-        const admin = admins[ admName ];
+        const admin = admins.filter( (itAdmin) => itAdmin.admName === admName )
         
         if( !admin ){
             // We dont want let them know there are not admins...
@@ -29,9 +31,29 @@ class AdminsService {
             throw boom.unauthorized( "Invalid admin / password data ");
         }
 
+        const data = {
+            adminLevel : admLevel,
+            date : new Date()
+        };
+
+        const token = jwt.sign( data, JWTKEY , {
+            expiresIn: "1d"
+        });
+
         return {
-            admLevel
+            admLevel,
+            token
         }
+    }
+
+    async chekAuth ( token ){
+        const validation = jwt.decode( token, JWTKEY );
+
+        if( validation ){
+             return validation;
+        }
+
+        throw boom.unauthorized( "Incorrect admin's token");
     }
 
     async create( server, admName, admPassword, admLevel ){
@@ -45,21 +67,20 @@ class AdminsService {
         const serversCollection = db.collection( "Servers" );
 
         const password = await bcrypt.hash( admPassword, 10);
-
-        const admin_key = "admins." + admName;
-        const admin_record_data = {};
-        admin_record_data [ admin_key ] = {
-            admPassword: password,
-            admLevel
-        };
-
+        
         const result = await serversCollection.updateOne(
             { _id: server._id },
             {
-                $set: admin_record_data
+                $push: {
+                    admins: {
+                        admName,
+                        password,
+                        admLevel
+                    }
+                }
             }
         )
-
+        
         return result;
         
     }
